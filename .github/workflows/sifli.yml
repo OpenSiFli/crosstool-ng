@@ -1,5 +1,5 @@
 ---
-name: CI
+name: SiFli
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.host }}
     strategy:
       matrix:
-        host: ["ubuntu-22.04", "macos-13"]
+        host: ["ubuntu-22.04", "macos-13", "macos-14"]
     steps:
       - name: "clone"
         uses: actions/checkout@v4
@@ -105,7 +105,6 @@ jobs:
 
   cross-toolchains:
     # 创建一些后续一定会用到的交叉编译工具链
-    if: ${{ runner.os == 'Linux'}}
     needs: [crosstool, tarballs]
     uses: ./.github/workflows/build-toolchains.yml
     with:

@@ -1,0 +1,12 @@
+---
+name: SiFli Build
+
+on:
+  workflow_call:
+    inputs:
+      samples:
+        description: Stringified JSON list of samples
+        required: true
+        type: string
+
+jobs:
