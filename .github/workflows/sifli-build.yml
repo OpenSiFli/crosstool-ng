@@ -10,3 +10,86 @@ on:
         type: string
 
 jobs:
+  build:
+    runs-on: ${{ matrix.sample.build }}
+    strategy:
+      matrix:
+        sample: ${{ fromJSON(inputs.samples) }}
+    steps:
+      - name: create case sensitive workspace volume for macOS
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          cd ..
+          rmdir crosstool-ng
+          hdiutil create "${HOME}/Workspace.sparseimage" -volname crosstool-ng -type SPARSE -size 20g -fs HFSX
+          hdiutil mount "${HOME}/Workspace.sparseimage" -mountroot /Users/runner/work/crosstool-ng
+          cd crosstool-ng
+      - name: download ct-ng
+        uses: actions/download-artifact@v4
+        with:
+          name: crosstool.${{ matrix.sample.build }}
+      - name: extract ct-ng
+        run: |
+          tar -xf ct-ng.tar
+      - name: download tarballs
+        uses: actions/cache/restore@v4
+        with:
+          path: src.tar
+          key: src.tar-${{ hashFiles('.local/share/crosstool-ng/packages') }}-${{ hashFiles('.local/share/crosstool-ng/samples') }}
+      - name: extract tarballs
+        continue-on-error: true
+        run: |
+          tar -xvf src.tar
+      - name: prereq Linux
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y bison flex gperf help2man libtool-bin meson ninja-build texinfo
+          echo "${{ github.workspace }}/.local/bin" >> "$GITHUB_PATH"
+      - name: prereq macOS
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          brew install autoconf automake bash binutils gawk gnu-sed \
+               gnu-tar help2man make meson ncurses ninja pkg-config texinfo libtool
+          echo "${{ github.workspace }}/.local/bin" >> "$GITHUB_PATH"
+      - name: download ${{ matrix.sample.host }}.${{ matrix.sample.build }} tarball
+        if: ${{ runner.os != 'macOS' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.sample.host }}.${{ matrix.sample.build }}.tar
+      - name: install ${{ matrix.sample.host }}.${{ matrix.sample.build }} toolchain
+        if: ${{ runner.os != 'macOS' }}
+        run: |
+          mkdir -p ${{ github.workspace }}/${{ matrix.sample.host }}
+          tar -C ${{ github.workspace }}/${{ matrix.sample.host }} \
+              -xf ${{ matrix.sample.host }}.${{ matrix.sample.build }}.tar
+          echo "${{ github.workspace }}/${{ matrix.sample.host }}/bin" >> "$GITHUB_PATH"
+      - name: build ${{ matrix.sample.target }} for macOS
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          mkdir -p src
+          ct-ng ${{ matrix.sample.target }}
+          sed -i -e '/CT_LOG_PROGRESS_BAR/s/y$/n/' .config
+          sed -i -e '/CT_LOCAL_TARBALLS_DIR/s/HOME/CT_TOP_DIR/' .config
+          sed -i -e '/CT_PREFIX_DIR/s/HOME/CT_TOP_DIR/' .config
+          sed -i -e '/CT_GLIBC_ENABLE_DEBUG/s/y$/n/' .config
+          test ${{ matrix.sample.build }} = "macos-13" && sed -i -e '/CT_GDB_CROSS_PYTHON/s/y$/n/' .config
+          ct-ng build
+      
+      - name: Canadian build ${{ matrix.sample.target }} for ${{ matrix.sample.host }} on ${{ matrix.sample.build }}
+      # 将所有在Linux上构建的都视为Canadian Cross
+        if: ${{ matrix.sample.canadian }}
+        run: |
+          mkdir -p src
+          ct-ng ${{ matrix.sample.target }}
+          sed -i -e '/CT_LOG_PROGRESS_BAR/s/y$/n/' .config
+          sed -i -e '/CT_LOCAL_TARBALLS_DIR/s/HOME/CT_TOP_DIR/' .config
+          sed -i -e '/CT_PREFIX_DIR/s/HOME/CT_TOP_DIR/' .config
+          sed -i -e '/CT_GLIBC_ENABLE_DEBUG/s/y$/n/' .config
+          sed -i -e '/CT_CROSS/s/y$/n/' .config # Canadian Cross
+          echo "CT_CANADIAN=y" >> .config
+          sed -i -e '/CT_TOOLCHAIN_TYPE/s/cross/canadian/' .config
+          sed -i -e 's/^CT_HOST=""/CT_HOST="${{ matrix.sample.host }}"/' .config
+
+          # test ${{ matrix.sample.build }} = "macos-13" && sed -i -e '/CT_GDB_CROSS_PYTHON/s/y$/n/' .config
+          ct-ng build
+    
