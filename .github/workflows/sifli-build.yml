@@ -77,7 +77,7 @@ jobs:
       
       - name: Canadian build ${{ matrix.sample.target }} for ${{ matrix.sample.host }} on ${{ matrix.sample.build }}
       # 将所有在Linux上构建的都视为Canadian Cross
-        if: ${{ matrix.sample.canadian }}
+        if: ${{ runner.os == 'Linux' }}
         run: |
           mkdir -p src
           ct-ng ${{ matrix.sample.target }}
