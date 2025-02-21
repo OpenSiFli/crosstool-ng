@@ -8,6 +8,11 @@ on:
         description: Stringified JSON list of samples
         required: true
         type: string
+      tag:
+        description: Tag for the build
+        required: true
+        type: string
+
 
 jobs:
   build:
@@ -15,6 +20,8 @@ jobs:
     strategy:
       matrix:
         sample: ${{ fromJSON(inputs.samples) }}
+    permissions:
+      contents: write
     steps:
       - name: create case sensitive workspace volume for macOS
         if: ${{ runner.os == 'macOS' }}
@@ -91,4 +98,43 @@ jobs:
           echo "CT_HOST=\"${{ matrix.sample.host }}\"" >> .config
 
           ct-ng build
-    
+
+      - name: create ${{ matrix.sample.target }}.${{ matrix.sample.host }} tar.gz archive
+        if: ${{ matrix.sample.host != 'x86_64-w64-mingw32' }} && ${{ matrix.sample.build != 'i686-w64-mingw32' }}
+        run: |
+          tar -C ${{ github.workspace }}/${{ matrix.sample.host }} \
+              -czf ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.tar.gz .
+      - name: upload ${{ matrix.sample.target }}.${{ matrix.sample.host }} tar.gz archive
+        if: ${{ matrix.sample.host != 'x86_64-w64-mingw32' }} && ${{ matrix.sample.build != 'i686-w64-mingw32' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.tar.gz
+          path: |
+            ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.tar.gz
+      - name: Create ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.tar.gz release
+        if: ${{ matrix.sample.host == 'x86_64-w64-mingw32' }} || ${{ matrix.sample.build == 'i686-w64-mingw32' }}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.tar.gz
+          allowUpdates: true
+          tag: ${{ inputs.tag }}
+
+      - name: Create ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.zip release
+      # 只有windows使用zip打包
+        if: ${{ matrix.sample.host == 'x86_64-w64-mingw32' }} || ${{ matrix.sample.build == 'i686-w64-mingw32' }}
+        run: |
+          zip -r ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.zip ${{ github.workspace }}/${{ matrix.sample.host }}
+      - name: Upload ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.zip release
+        if: ${{ matrix.sample.host == 'x86_64-w64-mingw32' }} || ${{ matrix.sample.build == 'i686-w64-mingw32' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.zip
+          path: |
+            ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.zip
+      - name: Create ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.zip release
+        if: ${{ matrix.sample.host == 'x86_64-w64-mingw32' }} || ${{ matrix.sample.build == 'i686-w64-mingw32' }}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{ matrix.sample.target }}-${{ inputs.tag }}-${{ matrix.sample.host }}.zip
+          allowUpdates: true
+          tag: ${{ inputs.tag }}

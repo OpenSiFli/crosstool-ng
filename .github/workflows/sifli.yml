@@ -3,7 +3,8 @@ name: SiFli
 
 on:
   push:
-  pull_request:
+    tags:
+      - "*"
 
   workflow_dispatch:
 
@@ -159,12 +160,5 @@ jobs:
               "target":"arm-none-eabi"
           }
         ]
-    
-    #  canadian-cross:
-    #    needs: [toolchains]
-    #    uses: ./.github/workflows/build-toolchains.yml
-    #    with:
-    #      samples: >-
-    #        ["x86_64-w64-mingw32,x86_64-pc-linux-gnu"]
-    #      canadian-cross: true
-    
+      tag: ${{ github.ref }}
+      
