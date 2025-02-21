@@ -67,7 +67,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         run: |
           mkdir -p src
-          ct-ng ${{ matrix.sample.target }}
+          ct-ng sifli-${{ matrix.sample.target }}
           sed -i -e '/CT_LOG_PROGRESS_BAR/s/y$/n/' .config
           sed -i -e '/CT_LOCAL_TARBALLS_DIR/s/HOME/CT_TOP_DIR/' .config
           sed -i -e '/CT_PREFIX_DIR/s/HOME/CT_TOP_DIR/' .config
@@ -80,7 +80,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           mkdir -p src
-          ct-ng ${{ matrix.sample.target }}
+          ct-ng sifli-${{ matrix.sample.target }}
           sed -i -e '/CT_LOG_PROGRESS_BAR/s/y$/n/' .config
           sed -i -e '/CT_LOCAL_TARBALLS_DIR/s/HOME/CT_TOP_DIR/' .config
           sed -i -e '/CT_PREFIX_DIR/s/HOME/CT_TOP_DIR/' .config
@@ -90,6 +90,5 @@ jobs:
           sed -i -e '/CT_TOOLCHAIN_TYPE/s/cross/canadian/' .config
           sed -i -e 's/^CT_HOST=""/CT_HOST="${{ matrix.sample.host }}"/' .config
 
-          # test ${{ matrix.sample.build }} = "macos-13" && sed -i -e '/CT_GDB_CROSS_PYTHON/s/y$/n/' .config
           ct-ng build
     

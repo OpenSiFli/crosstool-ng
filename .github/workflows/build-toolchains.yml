@@ -97,12 +97,10 @@ jobs:
           test ${{ matrix.host }} = "macos-13" && sed -i -e '/CT_GDB_CROSS_PYTHON/s/y$/n/' .config
           ct-ng build
       - name: create ${{ matrix.sample }}.${{ matrix.host }} tarball
-        if: ${{ matrix.sample == 'x86_64-w64-mingw32' }}
         run: |
           tar -C ${{ github.workspace }}/x-tools/${{ matrix.sample }} \
               -cf ${{ matrix.sample }}.${{ matrix.host }}.tar .
       - name: upload ${{ matrix.sample }}.${{ matrix.host }} tarball
-        if: ${{ matrix.sample == 'x86_64-w64-mingw32' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.sample }}.${{ matrix.host }}.tar
