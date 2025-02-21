@@ -88,7 +88,7 @@ jobs:
           sed -i -e '/CT_CROSS/s/y$/n/' .config # Canadian Cross
           echo "CT_CANADIAN=y" >> .config
           sed -i -e '/CT_TOOLCHAIN_TYPE/s/cross/canadian/' .config
-          sed -i -e 's/^CT_HOST=""/CT_HOST="${{ matrix.sample.host }}"/' .config
+          echo "CT_HOST=\"${{ matrix.sample.host }}\"" >> .config
 
           ct-ng build
     
