@@ -8,6 +8,9 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   crosstool:
     runs-on: ${{ matrix.host }}
@@ -161,4 +164,3 @@ jobs:
           }
         ]
       tag: ${{ github.ref }}
-      
